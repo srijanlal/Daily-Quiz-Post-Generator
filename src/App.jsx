@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 
 const sampleData = {
@@ -34,6 +34,13 @@ const defaultTheme = {
 const POST_WIDTH = 1080
 const POST_HEIGHT = 1350
 const PREVIEW_SCALE = 0.5
+const THEME_STORAGE_KEY = 'daily-quiz-theme-index'
+const bankingStickers = [
+  { className: 'sticker-rupee', symbol: '₹' },
+  { className: 'sticker-bank', symbol: '🏦' },
+  { className: 'sticker-card', symbol: '💳' },
+  { className: 'sticker-cash', symbol: '💸' },
+]
 
 const colorThemes = [
   { name: 'Midnight Violet', ...defaultTheme },
@@ -260,7 +267,7 @@ function buildHtmlSnippet(data, theme) {
     .map((item, index) => {
       const answerMarkup =
         index === 4
-          ? '<div class="answer hidden">🔒 Hidden answer — comment below</div>'
+          ? '<div class="answer hidden">?? Comment your answer below!</div>'
           : `<div class="answer">✅ ${escapeHtml(item.answer || 'Answer')}</div>`
 
       return `
@@ -298,6 +305,7 @@ function buildHtmlSnippet(data, theme) {
       background: ${theme.cardBackground};
       border: 1px solid ${theme.cardBorder};
       box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+      border-radius: 0;
       display: flex;
       flex-direction: column;
       gap: calc(10px * var(--content-scale));
@@ -333,6 +341,35 @@ function buildHtmlSnippet(data, theme) {
       background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(244, 114, 182, 0.1));
       transform: rotate(18deg);
       filter: blur(2px);
+    }
+    .bank-sticker {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      z-index: 0;
+      pointer-events: none;
+      color: #f8fafc;
+      background: linear-gradient(135deg, rgba(22, 163, 74, 0.28), rgba(245, 158, 11, 0.22));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+    }
+    .bank-sticker.sticker-a {
+      top: calc(96px * var(--content-scale));
+      right: calc(28px * var(--content-scale));
+      width: calc(76px * var(--content-scale));
+      height: calc(76px * var(--content-scale));
+      font-size: calc(36px * var(--content-scale));
+      transform: rotate(10deg);
+    }
+    .bank-sticker.sticker-b {
+      bottom: calc(138px * var(--content-scale));
+      left: calc(24px * var(--content-scale));
+      width: calc(68px * var(--content-scale));
+      height: calc(68px * var(--content-scale));
+      font-size: calc(30px * var(--content-scale));
+      transform: rotate(-10deg);
     }
     .topbar,
     .title-card,
@@ -491,8 +528,8 @@ function buildHtmlSnippet(data, theme) {
 </head>
 <body>
   <section class="post-card">
-    <div class="backdrop-orb one">🔥</div>
-    <div class="backdrop-orb two">✨</div>
+    <div class="bank-sticker sticker-a">₹</div>
+    <div class="bank-sticker sticker-b">💳</div>
     <div class="topbar" aria-hidden="true"></div>
     <div class="title-card">
       <h1>${escapeHtml(data.title)}</h1>
@@ -515,10 +552,27 @@ export default function App() {
   const [form, setForm] = useState(sampleData)
   const [quickText, setQuickText] = useState(formatQuickText(sampleData.questions))
   const [message, setMessage] = useState('')
-  const [themeIndex, setThemeIndex] = useState(0)
+  const [themeIndex, setThemeIndex] = useState(() => {
+    if (!globalThis.localStorage) return 0
+
+    const storedThemeIndex = Number.parseInt(
+      globalThis.localStorage.getItem(THEME_STORAGE_KEY) ?? '0',
+      10,
+    )
+
+    if (Number.isNaN(storedThemeIndex) || storedThemeIndex < 0 || storedThemeIndex >= colorThemes.length) {
+      return 0
+    }
+
+    return storedThemeIndex
+  })
   const previewRef = useRef(null)
   const activeTheme = colorThemes[themeIndex]
   const contentScale = getContentScale(form)
+
+  useEffect(() => {
+    globalThis.localStorage?.setItem(THEME_STORAGE_KEY, String(themeIndex))
+  }, [themeIndex])
   const previewStyle = {
     '--preview-bg': activeTheme.cardBackground,
     '--preview-border': activeTheme.cardBorder,
@@ -544,7 +598,7 @@ export default function App() {
       .map((item, index) => {
         const fallbackQuestion = item.question || `Question ${index + 1}`
         if (index === 4) {
-          return `${index + 1}. ${fallbackQuestion}\n❓ Hidden answer — comment below!`
+          return `${index + 1}. ${fallbackQuestion}\n?? Comment your answer below!`
         }
 
         return `${index + 1}. ${fallbackQuestion}\n✅ ${item.answer || 'Answer here'}`
@@ -556,15 +610,6 @@ export default function App() {
 
   function updateField(key, value) {
     setForm((current) => ({ ...current, [key]: value }))
-  }
-
-  function updateQuestion(index, key, value) {
-    setForm((current) => ({
-      ...current,
-      questions: current.questions.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [key]: value } : item,
-      ),
-    }))
   }
 
   function loadSample() {
@@ -590,19 +635,9 @@ export default function App() {
     }
   }
 
-  async function copyHtml() {
-    try {
-      await navigator.clipboard.writeText(buildHtmlSnippet(form, activeTheme))
-      setMessage(`HTML card copied with the ${activeTheme.name} theme.`)
-    } catch {
-      setMessage('Clipboard copy failed. Please copy manually.')
-    }
-  }
-
   function changeTheme() {
     const nextIndex = (themeIndex + 1) % colorThemes.length
     setThemeIndex(nextIndex)
-    setMessage(`Theme changed to ${colorThemes[nextIndex].name}.`)
   }
 
   async function downloadPng() {
@@ -634,6 +669,12 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      {bankingStickers.map((item) => (
+        <div key={item.className} className={`page-sticker ${item.className}`} aria-hidden="true">
+          {item.symbol}
+        </div>
+      ))}
+
       <section className="editor-panel">
         <div className="panel-head">
           <div>
@@ -645,26 +686,47 @@ export default function App() {
           </button>
         </div>
 
-        <div className="input-group">
-          <label htmlFor="title">Post title</label>
-          <input
-            id="title"
-            value={form.title}
-            onChange={(event) => updateField('title', event.target.value)}
-            placeholder="Enter your post title"
-          />
-        </div>
+        <details className="settings-card">
+          <summary>
+            <div className="settings-copy">
+              <span>Post settings</span>
+              <strong>Title, subtitle & CTA</strong>
+            </div>
+          </summary>
 
-        <div className="input-group">
-          <label htmlFor="intro">Subtitle</label>
-          <textarea
-            id="intro"
-            rows="3"
-            value={form.intro}
-            onChange={(event) => updateField('intro', event.target.value)}
-            placeholder="Daily Banking Gyan"
-          />
-        </div>
+          <div className="settings-card-body">
+            <div className="input-group">
+              <label htmlFor="title">Post title</label>
+              <input
+                id="title"
+                value={form.title}
+                onChange={(event) => updateField('title', event.target.value)}
+                placeholder="Enter your post title"
+              />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="intro">Subtitle</label>
+              <textarea
+                id="intro"
+                rows="3"
+                value={form.intro}
+                onChange={(event) => updateField('intro', event.target.value)}
+                placeholder="Daily Banking Gyan"
+              />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="cta">Call to action</label>
+              <input
+                id="cta"
+                value={form.cta}
+                onChange={(event) => updateField('cta', event.target.value)}
+                placeholder="Ask users to comment"
+              />
+            </div>
+          </div>
+        </details>
 
         <div className="input-group">
           <label htmlFor="quickText">Paste 5 lines as: Question | Answer</label>
@@ -680,44 +742,20 @@ export default function App() {
           </button>
         </div>
 
-        <div className="question-list">
-          {form.questions.map((item, index) => (
-            <div className="question-editor" key={item.id}>
-              <div className="question-label-row">
-                <span>Question {index + 1}</span>
-                {index === 4 && <strong>Answer stays hidden</strong>}
-              </div>
-              <input
-                value={item.question}
-                onChange={(event) => updateQuestion(index, 'question', event.target.value)}
-                placeholder={`Type question ${index + 1}`}
-              />
-              <input
-                value={item.answer}
-                onChange={(event) => updateQuestion(index, 'answer', event.target.value)}
-                placeholder={`Type answer ${index + 1}`}
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="input-group">
-          <label htmlFor="cta">Call to action</label>
-          <input
-            id="cta"
-            value={form.cta}
-            onChange={(event) => updateField('cta', event.target.value)}
-            placeholder="Ask users to comment"
-          />
-        </div>
-
         <div className="theme-toolbar">
           <div className="theme-copy">
-            <span>Current theme</span>
+            <div className="theme-copy-top">
+              <span>Current theme</span>
+              <span
+                className="theme-swatch"
+                style={{ background: activeTheme.pageBackground }}
+                aria-hidden="true"
+              />
+            </div>
             <strong>{activeTheme.name}</strong>
           </div>
-          <button className="secondary-button" onClick={changeTheme}>
-            Change color theme
+          <button className="secondary-button theme-button" onClick={changeTheme}>
+            Change theme
           </button>
         </div>
 
@@ -728,9 +766,9 @@ export default function App() {
           <button className="secondary-button" onClick={copyCaption}>
             Copy caption text
           </button>
-          <button className="secondary-button" onClick={copyHtml}>
+          {/* <button className="secondary-button" onClick={copyHtml}>
             Copy HTML card
-          </button>
+          </button> */}
         </div>
 
         {message && <p className="status-message">{message}</p>}
@@ -739,6 +777,8 @@ export default function App() {
       <section className="preview-panel">
         <div className="preview-stage">
           <div className="preview-card" ref={previewRef} style={previewStyle}>
+            <div className="preview-accent one" aria-hidden="true">₹</div>
+            <div className="preview-accent two" aria-hidden="true">🏦</div>
             <div className="preview-topbar" aria-hidden="true" />
 
             <div className="title-card">
@@ -758,7 +798,7 @@ export default function App() {
                   <span className="quiz-badge">Q{index + 1}</span>
                   <h3>{item.question || `Question ${index + 1}`}</h3>
                   {index === 4 ? (
-                    <div className="answer-box hidden-answer">🔒 Hidden answer — comment below</div>
+                    <div className="answer-box hidden-answer">?? Comment your answer below!</div>
                   ) : (
                     <div className="answer-box">✅ {item.answer || 'Answer here'}</div>
                   )}

@@ -4,9 +4,10 @@
   font-weight: 400;
   color: #e5eefc;
   background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.24), transparent 28%),
-    radial-gradient(circle at top right, rgba(244, 114, 182, 0.22), transparent 32%),
-    linear-gradient(135deg, #0f172a 0%, #111827 45%, #1e1b4b 100%);
+    radial-gradient(circle at 12% 18%, rgba(34, 197, 94, 0.18), transparent 0 18%),
+    radial-gradient(circle at 86% 14%, rgba(250, 204, 21, 0.16), transparent 0 20%),
+    radial-gradient(circle at 18% 82%, rgba(59, 130, 246, 0.14), transparent 0 22%),
+    linear-gradient(135deg, #07111f 0%, #0f172a 45%, #052e2b 100%);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -39,6 +40,8 @@ button {
 }
 
 .app-shell {
+  position: relative;
+  isolation: isolate;
   width: min(1360px, calc(100% - 32px));
   margin: 0 auto;
   padding: 24px 0 40px;
@@ -47,8 +50,52 @@ button {
   gap: 20px;
 }
 
+.page-sticker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.18), rgba(245, 158, 11, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(14px);
+  font-size: 2rem;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page-sticker.sticker-rupee {
+  top: 12px;
+  left: -6px;
+  transform: rotate(-12deg);
+}
+
+.page-sticker.sticker-bank {
+  top: 122px;
+  right: 14px;
+  transform: rotate(10deg);
+}
+
+.page-sticker.sticker-card {
+  bottom: 128px;
+  left: 18px;
+  transform: rotate(8deg);
+}
+
+.page-sticker.sticker-cash {
+  right: -4px;
+  bottom: 30px;
+  transform: rotate(-10deg);
+}
+
 .editor-panel,
 .preview-panel {
+  position: relative;
+  z-index: 1;
   background: rgba(15, 23, 42, 0.68);
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 24px;
@@ -103,6 +150,74 @@ button {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 16px;
+}
+
+.settings-card {
+  margin-bottom: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.5);
+  overflow: hidden;
+}
+
+.settings-card summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.settings-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-card summary::after {
+  content: '+';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.32);
+  color: #082f49;
+  font-size: 1rem;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.settings-card[open] summary::after {
+  content: '−';
+}
+
+.settings-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.settings-copy span {
+  font-size: 0.75rem;
+  color: #93c5fd;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-copy strong {
+  color: #f8fafc;
+  font-size: 0.98rem;
+}
+
+.settings-card-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.settings-card-body .input-group:last-child {
+  margin-bottom: 0;
 }
 
 .input-group label,
@@ -175,6 +290,14 @@ textarea {
 .theme-copy {
   display: grid;
   gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.theme-copy-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .theme-copy span {
@@ -184,6 +307,19 @@ textarea {
 
 .theme-copy strong {
   color: #f8fafc;
+}
+
+.theme-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
+  flex: 0 0 auto;
+}
+
+.theme-button {
+  white-space: nowrap;
 }
 
 .action-row {
@@ -215,6 +351,7 @@ textarea {
 
 .secondary-button {
   background: rgba(15, 23, 42, 0.82);
+  border: 2px solid rgba(148, 163, 184, 0.22);
   color: #f8fafc;
 }
 
@@ -246,7 +383,7 @@ textarea {
   --cta-bg: rgba(15, 23, 42, 0.78);
   --content-scale: 1;
   position: relative;
-  border-radius: 28px;
+  border-radius: 0;
   padding: calc(18px * var(--content-scale));
   background: var(--preview-bg);
   border: 1px solid var(--preview-border);
@@ -304,27 +441,30 @@ textarea {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.24), rgba(245, 158, 11, 0.22));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #052e16;
   z-index: 0;
   pointer-events: none;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
 }
 
 .preview-accent.one {
-  top: calc(86px * var(--content-scale));
-  right: calc(22px * var(--content-scale));
-  width: calc(42px * var(--content-scale));
-  height: calc(42px * var(--content-scale));
-  font-size: calc(20px * var(--content-scale));
+  top: calc(74px * var(--content-scale));
+  right: calc(18px * var(--content-scale));
+  width: calc(46px * var(--content-scale));
+  height: calc(46px * var(--content-scale));
+  font-size: calc(21px * var(--content-scale));
+  transform: rotate(10deg);
 }
 
 .preview-accent.two {
-  bottom: calc(54px * var(--content-scale));
-  left: calc(20px * var(--content-scale));
-  width: calc(34px * var(--content-scale));
-  height: calc(34px * var(--content-scale));
+  bottom: calc(58px * var(--content-scale));
+  left: calc(16px * var(--content-scale));
+  width: calc(38px * var(--content-scale));
+  height: calc(38px * var(--content-scale));
   font-size: calc(16px * var(--content-scale));
+  transform: rotate(-10deg);
 }
 
 .preview-topbar {
@@ -517,11 +657,16 @@ textarea {
     padding: 14px;
   }
 
-  .theme-toolbar,
   .question-label-row,
   .panel-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .theme-toolbar {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
   }
 
   .preview-stage {
